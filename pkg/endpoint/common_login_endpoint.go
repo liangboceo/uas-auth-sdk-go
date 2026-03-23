@@ -20,12 +20,10 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 		authServerUrl, hasUrl = config.Get("yuanboot.application.server.uas.auth.auth-server-url").(string)
 	}
 	if !hasAppId {
-		log.Printf("应用id未配置")
-		panic("应用id未配置")
+		log.Printf("授权系统应用id未配置")
 	}
 	if !hasUrl {
 		log.Printf("授权系统URL未配置")
-		panic("授权系统URL未配置")
 	}
 	router.POST("/login", func(ctx *context.HttpContext) {
 		xlog.GetXLogger("CommonLoginEndpoint").Debugf("loaded commonLogin endpoint.")
@@ -48,7 +46,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			panic("JSON序列化失败: " + err.Error())
 			return
 		}
-		queryReq := &httpclient.Request{}
+		queryReq := httpclient.WithRequest()
 		queryReq.WithContentTypeAsJson().
 			WithBody(string(jsonBody)).
 			POST(authServerUrl + "/uas/generateTempToken").
@@ -84,7 +82,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 		}
 
 		// 构造 POST 请求
-		permReq := &httpclient.Request{}
+		permReq := httpclient.WithRequest()
 		permReq.WithContentTypeAsJson().
 			WithBody(string(jsonBody)).
 			POST(authServerUrl + "/uas/exchangePermToken").
