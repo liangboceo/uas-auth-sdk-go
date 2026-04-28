@@ -3,6 +3,7 @@ package endpoint
 import (
 	"encoding/json"
 	"log"
+	"net/http"
 
 	"github.com/liangboceo/yuanboot/abstractions/xlog"
 	"github.com/liangboceo/yuanboot/pkg/httpclient"
@@ -26,6 +27,14 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 		log.Printf("授权系统URL未配置")
 	}
 	router.POST("/login", func(ctx *context.HttpContext) {
+		defer func() {
+			if err := recover(); err != nil {
+				ctx.JSON(http.StatusInternalServerError, context.H{
+					"code":    http.StatusInternalServerError,
+					"message": err,
+				})
+			}
+		}()
 		xlog.GetXLogger("CommonLoginEndpoint").Debugf("loaded commonLogin endpoint.")
 		body := ctx.Input.GetBody()
 		var reqMap map[string]string
@@ -54,6 +63,16 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 		post, err := httpclient.NewClient().Post(queryReq)
 		if err != nil {
 			panic("接口请求异常: " + err.Error())
+			return
+		}
+		// 先判断返回的是否为200:请求成功，如果不是则返回
+		codeResult := post.BodyRaw.StatusCode
+		resultB := post.Body
+		if codeResult != 200 {
+			ctx.JSON(codeResult, context.H{
+				"code":    codeResult,
+				"message": string(resultB),
+			})
 			return
 		}
 		var result map[string]interface{}
@@ -115,6 +134,86 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			"data":    responseMap,
 		})
 		return
+	})
+	router.POST("/resource/limited/auth/tree", func(ctx *context.HttpContext) {
+		xlog.GetXLogger("CommonLoginEndpoint").Debugf("loaded commonLogin endpoint.")
+		defer func() {
+			if err := recover(); err != nil {
+				ctx.JSON(http.StatusInternalServerError, context.H{
+					"code":    http.StatusInternalServerError,
+					"message": err,
+				})
+			}
+		}()
+		userName := ctx.GetItem("userinfo").(string)
+		if userName == "" {
+			ctx.JSON(500, context.H{
+				"code":    500,
+				"message": "用户名为空！",
+			})
+			return
+		}
+		// 构造请求参数
+		params := map[string]string{
+			"appName":   appid,
+			"loginName": userName,
+		}
+		jsonBody, err := json.Marshal(params)
+		if err != nil {
+			panic("参数序列化失败: " + err.Error())
+		}
+		req := httpclient.WithRequest()
+		req.WithContentTypeAsJson().
+			WithBody(string(jsonBody)).
+			POST(authServerUrl + "/uas/resource/limited/auth/tree").
+			SetTimeout(5)
+
+		// 发送请求
+		clientResp, err := httpclient.NewClient().Post(req)
+		if err != nil {
+			panic("接口请求异常：" + err.Error())
+			return
+		}
+		resultByte := clientResp.Body
+		code := clientResp.BodyRaw.StatusCode
+		if code != 200 {
+			ctx.JSON(code, context.H{
+				"code":    code,
+				"message": string(resultByte),
+			})
+			return
+		}
+		var responseMap map[string]interface{}
+		if err := json.Unmarshal(resultByte, &responseMap); err != nil {
+			panic("解析响应 JSON 失败：" + err.Error())
+			return
+		}
+		ctx.JSON(code, context.H{
+			"code":    code,
+			"message": "success",
+			"data":    responseMap["data"],
+		})
+	})
+
+	router.POST("/getCurrentUser", func(ctx *context.HttpContext) {
+		xlog.GetXLogger("CommonLoginEndpoint").Debugf("loaded commonLogin endpoint.")
+		defer func() {
+			if err := recover(); err != nil {
+				ctx.JSON(http.StatusInternalServerError, context.H{
+					"code":    http.StatusInternalServerError,
+					"message": err,
+				})
+			}
+		}()
+		userName := ctx.GetItem("userinfo").(string)
+		responseMap := map[string]string{
+			"userName": userName,
+		}
+		ctx.JSON(200, context.H{
+			"code":    200,
+			"message": "success",
+			"data":    responseMap,
+		})
 	})
 
 }

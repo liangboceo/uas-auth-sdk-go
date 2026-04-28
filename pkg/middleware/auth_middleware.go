@@ -18,6 +18,7 @@ type AuthMiddleware struct {
 	*middlewares.BaseMiddleware
 	Log       xlog.ILogger
 	SecretKey string
+	appId     string
 	SkipPath  []interface{}
 }
 
@@ -27,14 +28,18 @@ func NewAuthMiddleware() *AuthMiddleware {
 }
 
 func (authmdw *AuthMiddleware) SetConfiguration(config abstractions.IConfiguration) {
-	var hasSecretKey bool
+	var hasSecretKey, hasAppId bool
 	if config != nil {
 		authmdw.SecretKey, hasSecretKey = config.Get("yuanboot.application.server.uas.auth.jwt-secret").(string)
 		authmdw.SkipPath, _ = config.Get("yuanboot.application.server.uas.auth.anon-urls").([]interface{})
+		authmdw.appId, hasAppId = config.Get("yuanboot.application.server.app.appId").(string)
 	}
 
 	if !hasSecretKey {
 		authmdw.SecretKey = "5Zk2Qx8LpW7rT3eY9uB1vF4sH6dG2jK8mN3bV7cX1zA9sD4fG7hJ2kL5pR8tY3"
+	}
+	if !hasAppId {
+		authmdw.Log.Errorf("appId is required")
 	}
 }
 
@@ -74,14 +79,15 @@ func (middleware *AuthMiddleware) Inovke(ctx *context.HttpContext, next func(ctx
 	// 5. 提取 Token 并验证
 	token := parts[1]
 	// 解析 Token
-	keyBytes, _ := base64.StdEncoding.DecodeString(middleware.SecretKey)
-	_, err := jwt.ParseToken(token, keyBytes)
+	keyBytes, _ := base64.StdEncoding.DecodeString(middleware.appId + middleware.SecretKey)
+	info, err := jwt.ParseToken(token, keyBytes)
 	if err != nil {
 		middleware.Log.Errorf("token验证失败: %v", err)
 		middleware.sendUnauthorizedResponse(ctx, "认证失败")
 		return
 	}
-	// 7. 认证通过，执行后续逻辑
+	mapClaims := info.(jwt.MapClaims)
+	ctx.SetItem("userinfo", mapClaims["username"])
 	next(ctx)
 }
 
