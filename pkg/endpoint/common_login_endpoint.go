@@ -1,7 +1,7 @@
 package endpoint
 
 import (
-	"encoding/json"
+	"github.com/bytedance/sonic"
 	"log"
 	"net/http"
 
@@ -38,7 +38,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 		xlog.GetXLogger("CommonLoginEndpoint").Debugf("loaded commonLogin endpoint.")
 		body := ctx.Input.GetBody()
 		var reqMap map[string]string
-		err := json.Unmarshal(body, &reqMap)
+		err := sonic.Unmarshal(body, &reqMap)
 		if err != nil {
 			// 处理解析错误
 			log.Printf("JSON序列化失败: %v", err)
@@ -49,7 +49,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			"uasToken": reqMap["token"],
 			"appId":    appid, // 对应 appProperties.getAppId()
 		}
-		jsonBody, err := json.Marshal(paramsMap)
+		jsonBody, err := sonic.Marshal(paramsMap)
 		if err != nil {
 			log.Printf("JSON序列化失败: %v", err)
 			panic("JSON序列化失败: " + err.Error())
@@ -76,7 +76,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			return
 		}
 		var result map[string]interface{}
-		if err := json.Unmarshal([]byte(post.String()), &result); err != nil {
+		if err := sonic.Unmarshal([]byte(post.String()), &result); err != nil {
 			panic("解析失败：" + err.Error())
 			return
 		}
@@ -95,7 +95,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			"appId":     appid, // 对应 appProperties.getAppId()
 		}
 		// 将参数转为 JSON 格式
-		jsonBody, err = json.Marshal(params)
+		jsonBody, err = sonic.Marshal(params)
 		if err != nil {
 			panic("参数序列化失败: " + err.Error())
 		}
@@ -124,7 +124,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			return
 		}
 		var responseMap map[string]interface{}
-		if err := json.Unmarshal(resultByte, &responseMap); err != nil {
+		if err := sonic.Unmarshal(resultByte, &responseMap); err != nil {
 			panic("解析响应 JSON 失败：" + err.Error())
 			return
 		}
@@ -158,7 +158,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			"appName":   appid,
 			"loginName": userName,
 		}
-		jsonBody, err := json.Marshal(params)
+		jsonBody, err := sonic.Marshal(params)
 		if err != nil {
 			panic("参数序列化失败: " + err.Error())
 		}
@@ -184,7 +184,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 			return
 		}
 		var responseMap map[string]interface{}
-		if err := json.Unmarshal(resultByte, &responseMap); err != nil {
+		if err := sonic.Unmarshal(resultByte, &responseMap); err != nil {
 			panic("解析响应 JSON 失败：" + err.Error())
 			return
 		}
