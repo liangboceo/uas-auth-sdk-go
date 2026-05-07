@@ -87,7 +87,11 @@ func (middleware *AuthMiddleware) Inovke(ctx *context.HttpContext, next func(ctx
 		return
 	}
 	mapClaims := info.(jwt.MapClaims)
-	ctx.SetItem("userinfo", mapClaims["username"])
+	userInfo := make(map[string]interface{})
+	for k, v := range mapClaims {
+		userInfo[k] = v
+	}
+	ctx.SetItem("userinfo", userInfo)
 	next(ctx)
 }
 
