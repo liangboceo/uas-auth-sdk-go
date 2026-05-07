@@ -146,8 +146,8 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 				})
 			}
 		}()
-		userName := ctx.GetItem("userinfo").(string)
-		if userName == "" {
+		userInfo := ctx.GetUser()
+		if userInfo == nil {
 			ctx.JSON(500, context.H{
 				"code":    500,
 				"message": "用户名为空！",
@@ -157,7 +157,7 @@ func UseCommonLoginEndpoint(router router.IRouterBuilder) {
 		// 构造请求参数
 		params := map[string]string{
 			"appName":   appid,
-			"loginName": userName,
+			"loginName": ctx.GetUser()["username"].(string),
 		}
 		jsonBody, err := json.Marshal(params)
 		if err != nil {
